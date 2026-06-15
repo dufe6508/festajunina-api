@@ -36,10 +36,12 @@ const handler = async (req, res) => {
   }
 
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.hostinger.com",
+    port: 465,
+    secure: true,
     auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_PASS,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
   });
 
@@ -90,7 +92,7 @@ const handler = async (req, res) => {
 
   try {
     await transporter.sendMail({
-      from: `"Festa Junina Brandão" <${process.env.GMAIL_USER}>`,
+      from: `"Festa Junina Brandão" <${process.env.SMTP_USER}>`,
       to,
       subject: `${primeiroNome}, seu ingresso chegou! 🎉`,
       html,
