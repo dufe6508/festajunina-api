@@ -9,13 +9,13 @@ const allowCors = (fn) => async (req, res) => {
   return fn(req, res);
 };
 
-const getQrBase64 = (code) =>
+const getQrBuffer = (code) =>
   new Promise((resolve, reject) => {
     const url = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(code)}`;
     https.get(url, (res) => {
       const chunks = [];
       res.on("data", (chunk) => chunks.push(chunk));
-      res.on("end", () => resolve(Buffer.concat(chunks).toString("base64")));
+      res.on("end", () => resolve(Buffer.concat(chunks)));
       res.on("error", reject);
     });
   });
@@ -26,18 +26,14 @@ const handler = async (req, res) => {
 
   const { to, nomeAluno, code, lote, preco } = req.body;
   const dataEvento = "21 de Junho de 2025";
+  const primeiroNome = nomeAluno.trim().split(" ")[0];
 
-  let qrBase64 = "";
+  let qrBuffer = null;
   try {
-    qrBase64 = await getQrBase64(code);
+    qrBuffer = await getQrBuffer(code);
   } catch (e) {
-    console.warn("Erro ao gerar QR base64:", e);
+    console.warn("Erro ao gerar QR:", e);
   }
-
-  // QR Code embutido diretamente no src como base64
-  const qrSrc = qrBase64
-    ? `data:image/png;base64,${qrBase64}`
-    : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(code)}`;
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -53,7 +49,7 @@ const handler = async (req, res) => {
       <p style="color:#888888;margin:0 0 24px">Festa Junina Brandão — ${dataEvento}</p>
 
       <div style="background:#111111;border:1px solid #333333;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
-        <img src="${qrSrc}" width="180" height="180"
+        <img src="cid:qrcode@festa" width="180" height="180"
           style="background:#ffffff;padding:8px;border-radius:8px;display:block;margin:0 auto"/>
         <p style="color:#999999;font-size:11px;margin:12px 0 4px;text-transform:uppercase;letter-spacing:2px">Código do Ingresso</p>
         <p style="font-size:26px;font-weight:bold;font-family:monospace;margin:0;color:#ffffff">${code}</p>
@@ -96,8 +92,17 @@ const handler = async (req, res) => {
     await transporter.sendMail({
       from: `"Festa Junina Brandão" <${process.env.GMAIL_USER}>`,
       to,
-      subject: `🎉 Seu ingresso chegou! ${code} — Festa Junina Brandão`,
+      subject: `${primeiroNome}, seu ingresso chegou! 🎉`,
       html,
+      attachments: qrBuffer
+        ? [
+            {
+              filename: "qrcode.png",
+              content: qrBuffer,
+              cid: "qrcode@festa",
+            },
+          ]
+        : [],
     });
 
     res.status(200).json({ ok: true });
