@@ -25,7 +25,7 @@ const handler = async (req, res) => {
     return res.status(405).json({ error: "Método não permitido" });
 
   const { to, nomeAluno, code, lote, preco } = req.body;
-  const dataEvento = "21 de Junho de 2025";
+  const dataEvento = "27 de Junho de 2026";
   const primeiroNome = nomeAluno.trim().split(" ")[0];
 
   let qrBuffer = null;
